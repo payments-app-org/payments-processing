@@ -12,11 +12,19 @@ class Results {
 
     private static final String TRANSFERS = "processing:transfer:";
     private static final String CHARITY = "processing:charity:";
+    private static final String PENDING = "processing:pending-result:";
 
     @Bean
     IdempotentResults<ProcessingController.TransferResponse> transferResults(StringRedisTemplate redis, JsonMapper json,
                                                                             ProcessingProperties props) {
         return new IdempotentResults<>(redis, json, TRANSFERS, props.resultsTtl(), ProcessingController.TransferResponse.class);
+    }
+
+    // Будущий итог долгого перевода: решён при приёме, отдаётся, когда подошёл срок
+    @Bean
+    IdempotentResults<ProcessingController.TransferResponse> pendingResults(StringRedisTemplate redis, JsonMapper json,
+                                                                           ProcessingProperties props) {
+        return new IdempotentResults<>(redis, json, PENDING, props.resultsTtl(), ProcessingController.TransferResponse.class);
     }
 
     @Bean

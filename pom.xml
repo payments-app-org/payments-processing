@@ -39,6 +39,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
+        <!-- HTTP-клиент к payment (итоги долгих переводов, входящие СБП): без стартера Spring Boot не применяет
+             настройки группы spring.http.serviceclient.payment (адрес, тайм-ауты) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-restclient</artifactId>
+        </dependency>
         <!-- /actuator/health: пробы liveness и readiness (healthcheck в compose, Kubernetes) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

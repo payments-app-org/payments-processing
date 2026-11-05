@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 // Идемпотентен по paymentId: повторный запрос получает тот же результат, перевод «не проводится» дважды.
 // Для ручной проверки: копейки .88 → DECLINED, .99 → ответ дольше таймаута payment (перевод при этом проведён).
 // Итоги — в Redis с TTL: повтор после рестарта или на другом поде получает тот же ответ.
+// Долгие переводы (за рубеж, пополнение из другого банка по СБП — там клиент подтверждает списание) отвечают
+// IN_PROGRESS; итог через processing.async.delay-* отправит payment AsyncCompletion.
 @RestController
 @RequestMapping("/api/processing")
 public class ProcessingController {
@@ -33,10 +35,13 @@ public class ProcessingController {
     private static final int KOPECKS = 2;
 
     private final IdempotentResults<TransferResponse> results;
+    private final PendingTransfers pending;
     private final ProcessingProperties props;
 
-    public ProcessingController(IdempotentResults<TransferResponse> results, ProcessingProperties props) {
-        this.results = results;
+    public ProcessingController(IdempotentResults<TransferResponse> transferResults, PendingTransfers pending,
+                                ProcessingProperties props) {
+        this.results = transferResults;
+        this.pending = pending;
         this.props = props;
     }
 
@@ -57,6 +62,17 @@ public class ProcessingController {
                 ? new TransferResponse(req.paymentId(), Status.DECLINED, null,
                         DECLINE_REASONS.get(ThreadLocalRandom.current().nextInt(DECLINE_REASONS.size())))
                 : new TransferResponse(req.paymentId(), Status.COMPLETED, EXTERNAL_PREFIX + UUID.randomUUID(), null);
+        if (isAsync(req)) {
+            // Принят: итог решён заранее, но payment узнает его позже — уведомлением или запросом статуса
+            TransferResponse accepted = new TransferResponse(req.paymentId(), Status.IN_PROGRESS, null, null);
+            TransferResponse first = results.putIfAbsent(req.paymentId(), accepted);
+            if (first == accepted) {
+                pending.schedule(result);
+                log.info("payment {}: принят, итог — через {}–{}", req.paymentId(), props.async().delayMin(),
+                        props.async().delayMax());
+            }
+            return first;
+        }
         // Результат фиксируем до «долгого ответа»: перевод уже проведён, просто ответ потерялся по дороге
         TransferResponse first = results.putIfAbsent(req.paymentId(), result);
         if (first != result) {
@@ -76,10 +92,16 @@ public class ProcessingController {
         return results.find(paymentId).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    public enum Status { COMPLETED, DECLINED }
+    private boolean isAsync(TransferRequest req) {
+        return props.async().types().contains(req.type()) || (props.async().sbpPull() && req.sourceBankId() != null);
+    }
 
+    public enum Status { COMPLETED, DECLINED, IN_PROGRESS }
+
+    // sourceBankId — банк, из которого забираем деньги по СБП (пополнение со своего счёта в другом банке)
     public record TransferRequest(@NotNull UUID paymentId, @NotNull String type, @NotNull BigDecimal amount,
-                                  String recipientPhone, String recipientBankId, String recipientCardNumber) {
+                                  String sourceBankId, String recipientPhone, String recipientBankId,
+                                  String recipientCardNumber) {
     }
 
     public record TransferResponse(UUID paymentId, Status status, String externalId, String reason) {

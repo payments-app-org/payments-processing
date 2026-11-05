@@ -4,6 +4,13 @@ server:
 spring:
   application:
     name: processing
+  # HTTP-клиент к payment: итоги долгих переводов и входящие СБП
+  http:
+    serviceclient:
+      payment:
+        base-url: ${PAYMENT_URL:http://localhost:8083}
+        connect-timeout: 1s
+        read-timeout: 5s
   threads:
     virtual:
       enabled: true
@@ -28,6 +35,17 @@ processing:
   # Ручная проверка: копейки .88 — отказ, .99 — долгий ответ
   declined-kopecks: 88
   slow-kopecks: 99
+  # Долгие переводы: за рубеж и пополнение из другого банка по СБП (там клиент подтверждает списание).
+  # Отвечаем IN_PROGRESS, итог — через delay-min…delay-max уведомлением в payment
+  async:
+    types: [ABROAD]
+    sbp-pull: true
+    delay-min: ${PROCESSING_ASYNC_DELAY_MIN:20s}
+    delay-max: ${PROCESSING_ASYNC_DELAY_MAX:40s}
+    poll-interval: 2s
+    batch-size: 50
+    notify-attempts: 5
+    notify-retry-delay: 10s
 
 # Actuator: /actuator/health — liveness (процесс жив) и readiness (готов принимать запросы: есть БД и Redis);
 # по ним healthcheck в compose и пробы Kubernetes. Остановка — плавная (по умолчанию в Spring Boot): новые запросы
@@ -49,7 +67,7 @@ management:
 platform:
   # Swagger: описание API и коды ошибок в схеме Problem
   openapi:
-    description: "Заглушка процессинга: переводы, справочник СБП, перечисления фондам"
+    description: "Заглушка процессинга: переводы (в том числе долгие), справочник СБП, входящие СБП, перечисления фондам"
 
 springdoc:
   # Swagger UI и спецификация включены; в проде можно выключить: SWAGGER_ENABLED=false

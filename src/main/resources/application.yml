@@ -7,9 +7,21 @@ spring:
   threads:
     virtual:
       enabled: true
+  # Redis: итоги переводов (идемпотентность) — переживают рестарт, одни на все поды
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      repositories:
+        enabled: false
 
 # Доли исходов; остальное — COMPLETED
 processing:
   decline-rate: ${PROCESSING_DECLINE_RATE:0.07}
   timeout-rate: ${PROCESSING_TIMEOUT_RATE:0.03}
   slow-delay: 5s
+  # Сколько хранить итог перевода (повтор и запрос статуса)
+  results-ttl: 7d
+  # Ручная проверка: копейки .88 — отказ, .99 — долгий ответ
+  declined-kopecks: 88
+  slow-kopecks: 99

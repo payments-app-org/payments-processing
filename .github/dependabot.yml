@@ -1,0 +1,29 @@
+# Раз в неделю — PR с обновлениями зависимостей; CI проверяет их как любой другой PR.
+# minor и patch — одним PR; мажорные смены базовых образов (Java, Node) не предлагает: это решение вместе с pom.xml и CI.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    # Свою библиотеку обновляем осознанно, когда выходит нужная версия
+    ignore:
+      - dependency-name: com.paymentsapp:platform
+    groups:
+      maven-minor:
+        update-types: [minor, patch]
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday

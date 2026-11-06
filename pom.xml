@@ -19,9 +19,20 @@
 
     <properties>
         <java.version>21</java.version>
-        <platform.version>0.1.0</platform.version>
+        <platform.version>1.0.0</platform.version>
         <springdoc.version>3.2.0</springdoc.version>
     </properties>
+
+    <!-- Своя библиотека payments-platform — в GitHub Packages (аналог корпоративного Nexus); вход — .mvn/settings.xml -->
+    <repositories>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/payments-app-org/payments-platform</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <dependencies>
         <!-- Общая инфраструктура: outbox, доменные ошибки, DLT, часовой пояс, хэши, блокировки планировщиков -->

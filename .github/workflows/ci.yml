@@ -1,0 +1,21 @@
+# CI сервиса — общий шаблон из payments-ci: сборка и тесты → проверка зависимостей → образ и его проверка;
+# в main — публикация образа ghcr.io/payments-app-org/payments-processing:<sha>
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Новый коммит в ветку PR останавливает старый запуск; в main каждый коммит получает свой образ
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ci:
+    uses: payments-app-org/payments-ci/.github/workflows/java-service.yml@v1
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write

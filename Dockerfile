@@ -3,7 +3,7 @@
 # секретом сборки (github_token) — в слои образа он не попадает. Тесты здесь не запускаем: их уже прогнал CI.
 # Стадия сборки — на архитектуре машины сборки (BUILDPLATFORM): jar одинаковый для amd64 и arm64,
 # Maven не работает под эмуляцией. Под каждую архитектуру собирается только финальный слой
-FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-21 AS build
+FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-26 AS build
 WORKDIR /src
 ENV GITHUB_ACTOR=payments-build
 COPY .mvn .mvn

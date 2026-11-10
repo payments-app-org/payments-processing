@@ -19,7 +19,7 @@
 
     <properties>
         <java.version>21</java.version>
-        <platform.version>1.2.0</platform.version>
+        <platform.version>1.2.1</platform.version>
         <springdoc.version>3.2.0</springdoc.version>
     </properties>
 
